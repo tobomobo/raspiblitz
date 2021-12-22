@@ -39,26 +39,28 @@ if [ "$1" = "1" ] || [ "$1" = "on" ]; then
   fi
 
   echo "# INSTALL Web API ..."
-  sudo apt install -y redis
+  
+  # clean old code
   sudo rm -r /home/admin/blitz_api 2>/dev/null
   cd /home/admin
+
   # git clone https://github.com/fusion44/blitz_api.git /home/admin/blitz_api
   git clone https://github.com/${DEFAULT_GITHUB_USER}/${DEFAULT_GITHUB_REPO}.git /home/admin/blitz_api
   cd blitz_api
   git checkout ${DEFAULT_GITHUB_BRANCH}
+
+  # 
   pip install -r requirements.txt
 
-  # build the config and set unique secret (its OK to be a new secret every install/upadte)
+  # build the config and set unique secret (its OK to be a new secret every install/update)
   /home/admin/config.scripts/blitz.web.api.sh update-config
-  secret=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 64 ; echo '')
-  sed -i "s/^secret=.*/secret=${secret}/g" ./.env
 
   # prepare systemd service
   echo "
 [Unit]
 Description=BlitzBackendAPI
-Wants=network.target
-After=network.target
+Wants=background.scan.service
+After=background.scan.service
 
 [Service]
 WorkingDirectory=/home/admin/blitz_api
@@ -101,39 +103,64 @@ fi
 ###################
 if [ "$1" = "update-config" ]; then
 
-  # prepare configs data
-  source /mnt/hdd/raspiblitz.conf 2>/dev/null
-  if [ "${network}" = "" ]; then
-    network="bitcoin"
-    chain="main"
-  fi
-
   cd /home/admin/blitz_api
   cp ./.env_sample ./.env
   dateStr=$(date)
   echo "# Update Web API CONFIG (${dateStr})"
-  RPCUSER=$(sudo cat /mnt/hdd/${network}/${network}.conf | grep rpcuser | cut -c 9-)
-  RPCPASS=$(sudo cat /mnt/hdd/${network}/${network}.conf | grep rpcpassword | cut -c 13-)
-  if [ "${RPCUSER}" == "" ]; then
-    RPCUSER="raspibolt"
-  fi
-  if [ "${RPCPASS}" == "" ]; then
-    RPCPASS="passwordB"
-  fi
-  sed -i "s/^network=.*/network=mainnet/g" ./.env
-  sed -i "s/^bitcoind_ip_mainnet=.*/bitcoind_ip_mainnet=127.0.0.1/g" ./.env
-  sed -i "s/^bitcoind_ip_testnet=.*/bitcoind_ip_testnet=127.0.0.1/g" ./.env
-  sed -i "s/^bitcoind_user=.*/bitcoind_user=${RPCUSER}/g" ./.env
-  sed -i "s/^bitcoind_pw=.*/bitcoind_pw=${RPCPASS}/g" ./.env
+
+  # set platform to raspiblitz
+  sed -i "s/^# platform=.*/platform=raspiblitz/g" ./.env
   
-  # configure LND
+  # make secret consistent over restarts/reboots/updates so that browser sessions stay alive 
+  SECRET=$(sudo shasum -a 256 /etc/ssh/ssh_host_rsa_key.pub | cut -d " " -f1)
+  sed -i "s/^secret=.*/secret=${SECRET}/g" ./.env
+
+  # keep in mind this needs also to work later for setup when no HDD/SSD or bitcoin is configured yet
+  configAvailable=$(sudo ls /mnt/hdd/raspiblitz.conf 2>/dev/null | grep -c "raspiblitz.conf")
+  echo "# configAvailable(${configAvailable})"
+  if [ ${configAvailable} -lt 1 ]; then
+
+    echo "# running in setup mode - minimal default config"
+    sed -i "s/^login_password=.*/login_password='raspiblitz'/g" ./.env
+    network=""
+    lightning=""
+
+  else
+
+    echo "# running in config mode - run full setup"
+    source /mnt/hdd/raspiblitz.conf
+
+    # todo: login pass should later be password - run as a login test against the system
+    # but for now user passwordB - the RPC password 
+    LOGINPASS=$(sudo cat /mnt/hdd/${network}/${network}.conf | grep rpcpassword | cut -c 13-)
+    sed -i "s/^login_password=.*/login_password='${LOGINPASS}'/g" ./.env
+
+  fi
+
+  if [ "${network}" == "bitcoin" ]; then
+  
+    echo "# CONFIG Web API Bitcoin --> ON"
+    RPCUSER=$(sudo cat /mnt/hdd/${network}/${network}.conf | grep rpcuser | cut -c 9-)
+    RPCPASS=$(sudo cat /mnt/hdd/${network}/${network}.conf | grep rpcpassword | cut -c 13-)
+    sed -i "s/^network=.*/network=${chain}net/g" ./.env
+    sed -i "s/^bitcoind_ip_mainnet=.*/bitcoind_ip_mainnet=127.0.0.1/g" ./.env
+    sed -i "s/^bitcoind_ip_testnet=.*/bitcoind_ip_testnet=127.0.0.1/g" ./.env
+    sed -i "s/^bitcoind_user=.*/bitcoind_user=${RPCUSER}/g" ./.env
+    sed -i "s/^bitcoind_pw=.*/bitcoind_pw=${RPCPASS}/g" ./.env
+
+  else
+    echo "# CONFIG Web API Bitcoin --> OFF"
+    sed -i "s/^network=.*/network=/g" ./.env
+  fi
+  
+  
+  # configure LND (not set on setup mode)
   if [ "${lightning}" == "lnd" ]; then
 
     echo "# CONFIG Web API Lightning --> LND"
     tlsCert=$(sudo xxd -ps -u -c 1000 /mnt/hdd/lnd/tls.cert)
     adminMacaroon=$(sudo xxd -ps -u -c 1000 /mnt/hdd/lnd/data/chain/bitcoin/${chain}net/admin.macaroon)
     sed -i "s/^ln_node=.*/ln_node=lnd/g" ./.env
-    sed -i "s/^lnd_grpc_ip=.*/lnd_grpc_ip=127.0.0.1/g" ./.env
     sed -i "s/^lnd_macaroon=.*/lnd_macaroon=${adminMacaroon}/g" ./.env
     sed -i "s/^lnd_cert=.*/lnd_cert=${tlsCert}/g" ./.env
     if [ "${chain}" == "main" ];then
@@ -148,8 +175,11 @@ if [ "$1" = "update-config" ]; then
     fi
     lnd_grpc_port=1${L2rpcportmod}009
     lnd_rest_port=${portprefix}8080
+    sed -i "s/^lnd_grpc_ip=.*/lnd_grpc_ip=127.0.0.1/g" ./.env
+    sed -i "s/^lnd_grpc_port=.*/lnd_grpc_port=${lnd_grpc_port}/g" ./.env
+    sed -i "s/^lnd_rest_port=.*/lnd_rest_port=${lnd_rest_port}/g" ./.env
 
-  # configure CL
+  # configure CL (not set on setup mode)
   elif [ "${lightning}" == "cl" ]; then
     
     echo "# CONFIG Web API Lightning --> CL"
@@ -191,9 +221,11 @@ fi
 if [ "$1" = "0" ] || [ "$1" = "off" ]; then
 
   echo "# UNINSTALL Web API"
+  echo "# - stop/disable/delete service"
   sudo systemctl stop blitzapi
   sudo systemctl disable blitzapi
   sudo rm /etc/systemd/system/blitzapi.service
+  echo "# - delete folder /home/admin/blitz_api"
   sudo rm -r /home/admin/blitz_api
   exit 0
 
