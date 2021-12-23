@@ -144,9 +144,13 @@ sudo ufw default allow outgoing
 echo "allow: ssh"
 sudo ufw allow ssh
 echo "allow: bitcoin testnet"
-sudo ufw allow 18333 comment 'bitcoin testnet'
+sudo ufw allow 18333 comment 'bitcoin testnet (default)'
 echo "allow: bitcoin mainnet"
-sudo ufw allow 8333 comment 'bitcoin mainnet'
+sudo ufw allow 8333 comment 'bitcoin mainnet (default)'
+echo "allow: bitcoin testnet"
+sudo ufw allow 18332 comment 'bitcoin testnet (alt)'
+echo "allow: bitcoin mainnet"
+sudo ufw allow 8332 comment 'bitcoin mainnet (alt)'
 echo 'allow: lightning testnet'
 sudo ufw allow 19735 comment 'lightning testnet'
 echo "allow: lightning mainnet"
