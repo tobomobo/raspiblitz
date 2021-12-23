@@ -304,7 +304,8 @@ do
   # but can scan/monitor all that are switched on when `system_scan_all=on` in config
 
   # read/update config values
-  source /mnt/hdd/raspiblitz.conf
+  source ${configFile}
+  /home/admin/_cache.sh import ${configFile}
 
   # check if a one time `system_scan_all_once=1` is set on cache
   # will trigger a scan_all for one loop
