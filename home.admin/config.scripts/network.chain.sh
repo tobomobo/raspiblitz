@@ -57,16 +57,10 @@ if [ "$1" = "testnet" ]; then
   echo "editing /mnt/hdd/lnd/lnd.conf"
   sudo sed -i "s/^${network}.mainnet.*/${network}.mainnet=0/g" /mnt/hdd/lnd/lnd.conf
   sudo sed -i "s/^${network}.testnet.*/${network}.testnet=1/g" /mnt/hdd/lnd/lnd.conf
-  echo "editing /home/admin/.lnd/lnd.conf"
-  sudo sed -i "s/^${network}.mainnet.*/${network}.mainnet=0/g" /home/admin/.lnd/lnd.conf
-  sudo sed -i "s/^${network}.testnet.*/${network}.testnet=1/g" /home/admin/.lnd/lnd.conf
 else
   echo "editing /mnt/hdd/lnd/lnd.conf"
   sudo sed -i "s/^${network}.mainnet.*/${network}.mainnet=1/g" /mnt/hdd/lnd/lnd.conf
   sudo sed -i "s/^${network}.testnet.*/${network}.testnet=0/g" /mnt/hdd/lnd/lnd.conf
-  echo "editing /home/admin/.lnd/lnd.conf"
-  sudo sed -i "s/^${network}.mainnet.*/${network}.mainnet=1/g" /home/admin/.lnd/lnd.conf
-  sudo sed -i "s/^${network}.testnet.*/${network}.testnet=0/g" /home/admin/.lnd/lnd.conf
 fi
 
 # editing the raspi blitz config file
@@ -75,12 +69,6 @@ if [ "$1" = "testnet" ]; then
   /home/admin/config.scripts/blitz.conf.sh set chain "test"
 else
   /home/admin/config.scripts/blitz.conf.sh set chain "main"
-fi
-
-# edit RTL.conf (if active)
-if [ "${rtlWebinterface}" = "on" ]; then
-  echo "editing /home/admin/RTL/RTL.conf"
-  sudo sed -i "s/^macroonPath=.*/macroonPath=\/mnt\/hdd\/lnd\/data\/chain\/${network}\/$1/g" /home/admin/RTL/RTL.conf
 fi
 
 # now a reboot is needed to load all services fresh
