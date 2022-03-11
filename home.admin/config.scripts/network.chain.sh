@@ -43,16 +43,19 @@ fi
 echo "edit lightning config .."
 # fix old lnd config file (that worked with switching comment)
 sudo sed -i "s/^#bitcoin.testnet=.*/bitcoin.testnet=1/g" /mnt/hdd/lnd/lnd.conf
-sudo sed -i "s/^#bitcoin.testnet=.*/bitcoin.testnet=1/g" /home/admin/.lnd/lnd.conf
 # changes based on parameter
 if [ "$1" = "testnet" ]; then
   echo "editing /mnt/hdd/lnd/lnd.conf"
   sudo sed -i "s/^bitcoin.mainnet.*/bitcoin.mainnet=0/g" /mnt/hdd/lnd/lnd.conf
   sudo sed -i "s/^bitcoin.testnet.*/bitcoin.testnet=1/g" /mnt/hdd/lnd/lnd.conf
+  # deactivate prestart
+  sudo sed -i "s/^ExecStartPre=.*/ExecStartPre=-\/home\/admin\/config.scripts\/lnd.check.sh/g" /etc/systemd/system/lnd.service
 else
   echo "editing /mnt/hdd/lnd/lnd.conf"
   sudo sed -i "s/^bitcoin.mainnet.*/bitcoin.mainnet=1/g" /mnt/hdd/lnd/lnd.conf
   sudo sed -i "s/^bitcoin.testnet.*/bitcoin.testnet=0/g" /mnt/hdd/lnd/lnd.conf
+  # deactivate prestart
+  sudo sed -i "s/^ExecStartPre=.*/ExecStartPre=-\/home\/admin\/config.scripts\/lnd.check.sh/g" /etc/systemd/system/lnd.service
 fi
 
 # editing the raspi blitz config file
