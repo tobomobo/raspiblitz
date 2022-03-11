@@ -13,7 +13,7 @@ fi
 parameter_chain=$2
 maintestnet=0
 if [ "${parameter_chain}" == "maintestnet" ]; then
-  maintestnet=0
+  maintestnet=1
   parameter_chain="mainnet"
 fi
 
@@ -112,6 +112,7 @@ if [ "$1" == "prestart" ]; then
 
   # override in case of special mode "maintestnet" (just for devs)
   if [ "${maintestnet}" == "1" ]; then
+    echo "# special mode 'maintestnet'"
     setting ${lndConfFile} ${insertLine} "${network}\.testnet" "1"
     setting ${lndConfFile} ${insertLine} "${network}\.mainnet" "0"
   fi
