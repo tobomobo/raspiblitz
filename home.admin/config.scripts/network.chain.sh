@@ -83,14 +83,6 @@ else
   sudo sed -i "s/^ExecStartPre=.*/ExecStartPre=-\/home\/admin\/config.scripts\/lnd.check.sh/g" /etc/systemd/system/lnd.service
 fi
 
-# editing the raspi blitz config file
-echo "editing /mnt/hdd/raspiblitz.conf"
-if [ "$1" = "testnet" ]; then
-  /home/admin/config.scripts/blitz.conf.sh set chain "test"
-else
-  /home/admin/config.scripts/blitz.conf.sh set chain "main"
-fi
-
 # now a reboot is needed to load all services fresh
 # starting up process will display chain sync
 # ask user todo reboot
