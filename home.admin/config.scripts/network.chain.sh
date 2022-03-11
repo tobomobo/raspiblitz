@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # deprecated - see: https://github.com/rootzoll/raspiblitz/issues/2290
+# only use for development reasons
 
 # command info
 if [ $# -eq 0 ] || [ "$1" = "-h" ] || [ "$1" = "-help" ]; then
@@ -15,36 +16,27 @@ if [ "$1" != "testnet" ] && [ "$1" != "mainnet" ]; then
  exit 1
 fi
 
-# check and load raspiblitz config
-# to know which network is running
-source /home/admin/raspiblitz.info
-source /mnt/hdd/raspiblitz.conf
-if [ ${#network} -eq 0 ]; then
- echo "FAIL - missing network info"
- exit 1
-fi
-
 # stop services
 echo "making sure services are not running"
 sudo systemctl stop lnd 2>/dev/null
-sudo systemctl stop ${network}d 2>/dev/null
+sudo systemctl stop bitcoind 2>/dev/null
 
 # editing network config files (hdd & admin user)
-echo "edit ${network} config .."
+echo "edit bitcoin config .."
 # fix old lnd config file (that worked with switching comment)
-sudo sed -i "s/^#testnet=.*/testnet=1/g" /mnt/hdd/${network}/${network}.conf
-sudo sed -i "s/^#testnet=.*/testnet=1/g" /home/admin/.${network}/${network}.conf
+sudo sed -i "s/^#testnet=.*/testnet=1/g" /mnt/hdd/bitcoin/bitcoin.conf
+sudo sed -i "s/^#testnet=.*/testnet=1/g" /home/admin/.bitcoin/bitcoin.conf
 # changes based on parameter
 if [ "$1" = "testnet" ]; then
-  echo "editing /mnt/hdd/${network}/${network}.conf"
-  sudo sed -i "s/^testnet=.*/testnet=1/g" /mnt/hdd/${network}/${network}.conf
-  echo "editing /home/admin/.${network}/${network}.conf"
-  sudo sed -i "s/^testnet=.*/testnet=1/g" /home/admin/.${network}/${network}.conf
+  echo "editing /mnt/hdd/bitcoin/bitcoin.conf"
+  sudo sed -i "s/^testnet=.*/testnet=1/g" /mnt/hdd/bitcoin/bitcoin.conf
+  echo "editing /home/admin/.bitcoin/bitcoin.conf"
+  sudo sed -i "s/^testnet=.*/testnet=1/g" /home/admin/.bitcoin/bitcoin.conf
 else
-  echo "editing /mnt/hdd/${network}/${network}.conf"
-  sudo sed -i "s/^testnet=.*/testnet=0/g" /mnt/hdd/${network}/${network}.conf
-  echo "editing /home/admin/.${network}/${network}.conf"
-  sudo sed -i "s/^testnet=.*/testnet=0/g" /home/admin/.${network}/${network}.conf
+  echo "editing /mnt/hdd/bitcoin/bitcoin.conf"
+  sudo sed -i "s/^testnet=.*/testnet=0/g" /mnt/hdd/bitcoin/bitcoin.conf
+  echo "editing /home/admin/.bitcoin/bitcoin.conf"
+  sudo sed -i "s/^testnet=.*/testnet=0/g" /home/admin/.bitcoin/bitcoin.conf
 fi
 
 # editing lnd config files (hdd & admin user)
@@ -55,12 +47,12 @@ sudo sed -i "s/^#bitcoin.testnet=.*/bitcoin.testnet=1/g" /home/admin/.lnd/lnd.co
 # changes based on parameter
 if [ "$1" = "testnet" ]; then
   echo "editing /mnt/hdd/lnd/lnd.conf"
-  sudo sed -i "s/^${network}.mainnet.*/${network}.mainnet=0/g" /mnt/hdd/lnd/lnd.conf
-  sudo sed -i "s/^${network}.testnet.*/${network}.testnet=1/g" /mnt/hdd/lnd/lnd.conf
+  sudo sed -i "s/^bitcoin.mainnet.*/bitcoin.mainnet=0/g" /mnt/hdd/lnd/lnd.conf
+  sudo sed -i "s/^bitcoin.testnet.*/bitcoin.testnet=1/g" /mnt/hdd/lnd/lnd.conf
 else
   echo "editing /mnt/hdd/lnd/lnd.conf"
-  sudo sed -i "s/^${network}.mainnet.*/${network}.mainnet=1/g" /mnt/hdd/lnd/lnd.conf
-  sudo sed -i "s/^${network}.testnet.*/${network}.testnet=0/g" /mnt/hdd/lnd/lnd.conf
+  sudo sed -i "s/^bitcoin.mainnet.*/bitcoin.mainnet=1/g" /mnt/hdd/lnd/lnd.conf
+  sudo sed -i "s/^bitcoin.testnet.*/bitcoin.testnet=0/g" /mnt/hdd/lnd/lnd.conf
 fi
 
 # editing the raspi blitz config file
