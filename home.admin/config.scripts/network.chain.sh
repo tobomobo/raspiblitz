@@ -28,8 +28,15 @@ sudo sed -i "s/^#testnet=.*/testnet=1/g" /mnt/hdd/bitcoin/bitcoin.conf
 sudo sed -i "s/^#testnet=.*/testnet=1/g" /home/admin/.bitcoin/bitcoin.conf
 # changes based on parameter
 if [ "$1" = "testnet" ]; then
+
   echo "editing /mnt/hdd/bitcoin/bitcoin.conf"
   sudo sed -i "s/^testnet=.*/testnet=1/g" /mnt/hdd/bitcoin/bitcoin.conf
+  # switch rpc ports
+  sudo sed -i "s/^main.rpcport=.*/main.rpcport=18332/g" /mnt/hdd/bitcoin/bitcoin.conf
+  sudo sed -i "s/^test.rpcport=.*/test.rpcport=8332/g" /mnt/hdd/bitcoin/bitcoin.conf
+  sudo sed -i "s/^main.rpcbind=.*/main.rpcbind=127.0.0.1:18332/g" /mnt/hdd/bitcoin/bitcoin.conf
+  sudo sed -i "s/^test.rpcbind=.*/test.rpcbind=127.0.0.1:8332/g" /mnt/hdd/bitcoin/bitcoin.conf
+
   echo "editing /home/admin/.bitcoin/bitcoin.conf"
   sudo sed -i "s/^testnet=.*/testnet=1/g" /home/admin/.bitcoin/bitcoin.conf
   # switch rpc ports
@@ -37,9 +44,17 @@ if [ "$1" = "testnet" ]; then
   sudo sed -i "s/^test.rpcport=.*/test.rpcport=8332/g" /home/admin/.bitcoin/bitcoin.conf
   sudo sed -i "s/^main.rpcbind=.*/main.rpcbind=127.0.0.1:18332/g" /home/admin/.bitcoin/bitcoin.conf
   sudo sed -i "s/^test.rpcbind=.*/test.rpcbind=127.0.0.1:8332/g" /home/admin/.bitcoin/bitcoin.conf
+
 else
+
   echo "editing /mnt/hdd/bitcoin/bitcoin.conf"
   sudo sed -i "s/^testnet=.*/testnet=0/g" /mnt/hdd/bitcoin/bitcoin.conf
+  # switch rpc ports
+  sudo sed -i "s/^main.rpcport=.*/main.rpcport=8332/g" /mnt/hdd/bitcoin/bitcoin.conf
+  sudo sed -i "s/^test.rpcport=.*/test.rpcport=18332/g" /mnt/hdd/bitcoin/bitcoin.conf
+  sudo sed -i "s/^main.rpcbind=.*/main.rpcbind=127.0.0.1:8332/g" /mnt/hdd/bitcoin/bitcoin.conf
+  sudo sed -i "s/^test.rpcbind=.*/test.rpcbind=127.0.0.1:18332/g" /mnt/hdd/bitcoin/bitcoin.conf
+
   echo "editing /home/admin/.bitcoin/bitcoin.conf"
   sudo sed -i "s/^testnet=.*/testnet=0/g" /home/admin/.bitcoin/bitcoin.conf
   # switch rpc ports
