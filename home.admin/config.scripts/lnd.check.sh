@@ -4,13 +4,22 @@
 if [ $# -eq 0 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ] || [ "$1" = "-help" ]; then
   echo "# script to check LND states"
   echo "# lnd.check.sh basic-setup [mainnet|testnet|signet]"
-  echo "# lnd.check.sh prestart [mainnet|testnet|signet]"
+  echo "# lnd.check.sh prestart [mainnet|testnet|signet|maintestnet]"
   exit 1
+fi
+
+# special mode "maintestnet" (just for devs)
+# means node thinks it runs mainnet, but is running testnet instead of mainnet 
+parameter_chain=$2
+maintestnet=0
+if [ "${parameter_chain}" == "maintestnet" ]; then
+  maintestnet=0
+  parameter_chain="mainnet"
 fi
 
 # load raspiblitz conf
 source /mnt/hdd/raspiblitz.conf
-source <(/home/admin/config.scripts/network.aliases.sh getvars lnd $2)
+source <(/home/admin/config.scripts/network.aliases.sh getvars lnd ${parameter_chain})
 
 # config file
 echo "# checking lnd config for ${targetchain}"
@@ -50,7 +59,7 @@ if [ "$1" == "prestart" ]; then
   fi
 
   # set default chain parameter
-  targetchain=$2
+  targetchain="${parameter_chain}"
   if [ "${targetchain}" == "" ]; then
     targetchain="mainnet"
   fi
@@ -100,6 +109,12 @@ if [ "$1" == "prestart" ]; then
   # SET/UPDATE bitcoin.mainnet
   echo "# ${network}.${targetchain} insert/update"
   setting ${lndConfFile} ${insertLine} "${network}\.${targetchain}" "1"
+
+  # override in case of special mode "maintestnet" (just for devs)
+  if [ "${maintestnet}" == "1" ]; then
+    setting ${lndConfFile} ${insertLine} "${network}\.testnet" "1"
+    setting ${lndConfFile} ${insertLine} "${network}\.mainnet" "0"
+  fi
 
   # SET/UPDATE bitcoin.node
   echo "# ${network}.node insert/update"

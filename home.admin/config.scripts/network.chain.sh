@@ -74,13 +74,13 @@ if [ "$1" = "testnet" ]; then
   sudo sed -i "s/^bitcoin.mainnet.*/bitcoin.mainnet=0/g" /mnt/hdd/lnd/lnd.conf
   sudo sed -i "s/^bitcoin.testnet.*/bitcoin.testnet=1/g" /mnt/hdd/lnd/lnd.conf
   # deactivate prestart
-  sudo sed -i "s/^ExecStartPre=.*/ExecStartPre=-\/home\/admin\/config.scripts\/lnd.check.sh/g" /etc/systemd/system/lnd.service
+  sudo sed -i "s/^ExecStartPre=.*/ExecStartPre=-\/home\/admin\/config.scripts\/lnd.check.sh prestart maintestnet/g" /etc/systemd/system/lnd.service
 else
   echo "editing /mnt/hdd/lnd/lnd.conf"
   sudo sed -i "s/^bitcoin.mainnet.*/bitcoin.mainnet=1/g" /mnt/hdd/lnd/lnd.conf
   sudo sed -i "s/^bitcoin.testnet.*/bitcoin.testnet=0/g" /mnt/hdd/lnd/lnd.conf
   # deactivate prestart
-  sudo sed -i "s/^ExecStartPre=.*/ExecStartPre=-\/home\/admin\/config.scripts\/lnd.check.sh/g" /etc/systemd/system/lnd.service
+  sudo sed -i "s/^ExecStartPre=.*/ExecStartPre=-\/home\/admin\/config.scripts\/lnd.check.sh prestart mainnet/g" /etc/systemd/system/lnd.service
 fi
 
 # now a reboot is needed to load all services fresh
