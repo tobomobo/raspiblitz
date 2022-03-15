@@ -28,6 +28,8 @@ Creating a UTM VM of RaspiBlitz from scratch:
 
 Further notes:
 
+Unsolved how to run with testnet - a full mainnet blockchain is too big & slow and is difficult to
+
 Mount WebDAV share using command-line
 https://sleeplessbeastie.eu/2017/09/04/how-to-mount-webdav-share/
 
