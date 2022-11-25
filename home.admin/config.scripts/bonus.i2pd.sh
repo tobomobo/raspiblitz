@@ -114,38 +114,35 @@ source /mnt/hdd/raspiblitz.conf
 
 if [ "$1" = "install" ]; then
 
-  if apt list i2pd; then
-    echo "# i2pd is already installed."
+  echo "# Installing i2pd ..."
+  ARCHITECTURE=$(dpkg --print-architecture)
+  if [ ${ARCHITECTURE} = arm64 ]; then
+    # use the deb repo
+
+    add_repo
+
+    sudo apt-get update
+    sudo apt-get install -y i2pd
+    
   else
-    echo "# Installing i2pd ..."
-    ARCHITECTURE=$(dpkg --print-architecture)
-    if [ ${ARCHITECTURE} = arm64 ]; then
-      # use the deb repo
+    # install from github
+    # https://github.com/PurpleI2P/i2pd/releases
+    VERSION=2.43.0
+    DISTRO=$(lsb_release -cs)
 
-      add_repo
+    mkdir -p download/i2pd
+    cd download/i2pd || exit 1
+    wget -O i2pd_${VERSION}-1${DISTRO}1_${ARCHITECTURE}.deb https://github.com/PurpleI2P/i2pd/releases/download/${VERSION}/i2pd_${VERSION}-1${DISTRO}1_${ARCHITECTURE}.deb
 
-      sudo apt-get update
-      sudo apt-get install -y i2pd
-    else
-      # install from github
-      # https://github.com/PurpleI2P/i2pd/releases
-      VERSION=2.43.0
-      DISTRO=$(lsb_release -cs)
+    # verify
+    wget -O SHA512SUMS https://github.com/PurpleI2P/i2pd/releases/download/${VERSION}/SHA512SUMS
+    wget -O SHA512SUMS.asc https://github.com/PurpleI2P/i2pd/releases/download/${VERSION}/SHA512SUMS.asc
+    curl https://repo.i2pd.xyz/r4sas.gpg | gpg --import
+    gpg --verify SHA512SUMS.asc || (echo "# PGP signature error"; exit 5)
+    sha512sum -c SHA512SUMS --ignore-missing || (echo "# Checksum error"; exit 6)
 
-      mkdir -p download/i2pd
-      cd download/i2pd || exit 1
-      wget -O i2pd_${VERSION}-1${DISTRO}1_${ARCHITECTURE}.deb https://github.com/PurpleI2P/i2pd/releases/download/${VERSION}/i2pd_${VERSION}-1${DISTRO}1_${ARCHITECTURE}.deb
-
-      # verify
-      wget -O SHA512SUMS https://github.com/PurpleI2P/i2pd/releases/download/${VERSION}/SHA512SUMS
-      wget -O SHA512SUMS.asc https://github.com/PurpleI2P/i2pd/releases/download/${VERSION}/SHA512SUMS.asc
-      curl https://repo.i2pd.xyz/r4sas.gpg | gpg --import
-      gpg --verify SHA512SUMS.asc || (echo "# PGP signature error"; exit 5)
-      sha512sum -c SHA512SUMS --ignore-missing || (echo "# Checksum error"; exit 6)
-
-      # install
-      sudo dpkg -i --force-confnew i2pd_${VERSION}-1${DISTRO}1_${ARCHITECTURE}.deb
-    fi
+    # install
+    sudo dpkg -i --force-confnew i2pd_${VERSION}-1${DISTRO}1_${ARCHITECTURE}.deb
   fi
   exit 0
 fi
