@@ -35,8 +35,6 @@ localip=$(hostname -I | awk '{print $1}')
 if [ "$1" = "status" ]; then
 
   toraddress=$(sudo cat /mnt/hdd/tor/${USERNAME}/hostname 2>/dev/null)
-  httpPort="3010"
-  httpsPort="3011"
 
   echo "version='${WEBUI_VERSION}'"
   echo "installed='${isActive}'"
@@ -84,7 +82,6 @@ Activate Tor to access the web interface from outside your local network.
   exit 0
 fi
 
-
 # install (code & compile)
 if [ "$1" = "install" ]; then
 
@@ -95,7 +92,7 @@ if [ "$1" = "install" ]; then
 
   # make sure joinmarket is installed
   sudo /home/admin/config.scripts/bonus.joinmarket.sh install || exit 1
-  
+
   echo "# *** INSTALL JAM (user & code) ***"
 
   echo "# Creating the ${USERNAME} user"
@@ -197,10 +194,10 @@ if [ "$1" = "1" ] || [ "$1" = "on" ]; then
     sudo -u joinmarket rm -rf /home/joinmarket/.joinmarket/ssl 1>&2
   fi
   subj="/C=US/ST=Utah/L=Lehi/O=Your Company, Inc./OU=IT/CN=example.com"
-  sudo -u joinmarket mkdir -p /home/joinmarket/.joinmarket/ssl/ 1>&2 \
-    && pushd "$_" 1>&2 \
-    && sudo -u joinmarket openssl req -newkey rsa:4096 -x509 -sha256 -days 3650 -nodes -out cert.pem -keyout key.pem -subj "$subj" 1>&2 \
-    && popd 1>&2 || exit 1
+  sudo -u joinmarket mkdir -p /home/joinmarket/.joinmarket/ssl/ 1>&2 &&
+    pushd "$_" 1>&2 &&
+    sudo -u joinmarket openssl req -newkey rsa:4096 -x509 -sha256 -days 3650 -nodes -out cert.pem -keyout key.pem -subj "$subj" 1>&2 &&
+    popd 1>&2 || exit 1
 
   # SYSTEMD SERVICE
   echo "# Install JoinMarket API systemd" 1>&2
@@ -239,17 +236,17 @@ WantedBy=multi-user.target
 
   # Hidden Service for jam if Tor is active
   if [ "${runBehindTor}" = "on" ]; then
-      # remove legacy
-      /home/admin/config.scripts/tor.onion-service.sh off joinmarket-webui 1>&2
-      # add jam
-      /home/admin/config.scripts/tor.onion-service.sh jam 80 7502 443 7503 1>&2
+    # remove legacy
+    /home/admin/config.scripts/tor.onion-service.sh off joinmarket-webui 1>&2
+    # add jam
+    /home/admin/config.scripts/tor.onion-service.sh jam 80 7502 443 7503 1>&2
   fi
   source $RASPIBLITZ_INFO
   if [ "${state}" == "ready" ]; then
-      echo "# OK - the joinmarket-api.service is enabled, system is ready so starting service"
-      sudo systemctl start joinmarket-api
+    echo "# OK - the joinmarket-api.service is enabled, system is ready so starting service"
+    sudo systemctl start joinmarket-api
   else
-      echo "# OK - the joinmarket-api.service is enabled, to start manually use: 'sudo systemctl start joinmarket-api'"
+    echo "# OK - the joinmarket-api.service is enabled, to start manually use: 'sudo systemctl start joinmarket-api'"
   fi
 
   echo "# Start the joinmarket ob-watcher.service"
@@ -261,7 +258,7 @@ fi
 
 # precheck
 if [ "$1" = "precheck" ]; then
-  if [ $(/usr/local/bin/bitcoin-cli -conf=/mnt/hdd/bitcoin/bitcoin.conf listwallets | grep -c wallet.dat) -eq 0 ];then
+  if [ $(/usr/local/bin/bitcoin-cli -conf=/mnt/hdd/bitcoin/bitcoin.conf listwallets | grep -c wallet.dat) -eq 0 ]; then
     echo "# Create a non-descriptor wallet.dat"
     /usr/local/bin/bitcoin-cli -conf=/mnt/hdd/bitcoin/bitcoin.conf -named createwallet wallet_name=wallet.dat descriptors=false
   else
@@ -281,10 +278,9 @@ if [ "$1" = "precheck" ]; then
   # max_cj_fee_abs between 5000 - 10000 sats
   sed -i "s/#max_cj_fee_abs = x/max_cj_fee_abs = $(shuf -i 5000-10000 -n1)/g" /home/joinmarket/.joinmarket/joinmarket.cfg
   # max_cj_fee_rel between 0.01 - 0.03%
-  sed -i "s/#max_cj_fee_rel = x/max_cj_fee_rel = 0.000$((RANDOM%3+1))/g" /home/joinmarket/.joinmarket/joinmarket.cfg
+  sed -i "s/#max_cj_fee_rel = x/max_cj_fee_rel = 0.000$((RANDOM % 3 + 1))/g" /home/joinmarket/.joinmarket/joinmarket.cfg
   exit 0
 fi
-
 
 # update
 if [ "$1" = "update" ]; then
@@ -317,7 +313,7 @@ if [ "$1" = "update" ]; then
       sudo -u $USERNAME git reset --hard v${version}
 
       sudo -u $USERNAME /home/admin/config.scripts/blitz.git-verify.sh \
-       "${PGPsigner}" "${PGPpubkeyLink}" "${PGPpubkeyFingerprint}" "v${version}" || exit 1
+        "${PGPsigner}" "${PGPpubkeyLink}" "${PGPpubkeyFingerprint}" "v${version}" || exit 1
 
       cd $HOME_DIR || exit 1
     fi
@@ -339,7 +335,6 @@ if [ "$1" = "update" ]; then
   exit 0
 fi
 
-
 # switch off
 if [ "$1" = "0" ] || [ "$1" = "off" ]; then
 
@@ -358,8 +353,8 @@ if [ "$1" = "0" ] || [ "$1" = "off" ]; then
   # remove nginx symlinks and configs
   sudo rm -f /etc/nginx/sites-enabled/jam_* 1>&2
   sudo rm -f /etc/nginx/sites-available/jam_* 1>&2
-  sudo rm /var/log/nginx/error_jam.log 1>/dev/null 2/dev/null
-  sudo rm /var/log/nginx/access_jam.log 1>/dev/null 2/dev/null
+  sudo rm /var/log/nginx/error_jam.log 2/dev/null 1>/dev/null
+  sudo rm /var/log/nginx/access_jam.log 2/dev/null 1>/dev/null
   sudo nginx -t 1>&2
   sudo systemctl reload nginx 1>&2
 
