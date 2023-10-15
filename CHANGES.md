@@ -1,8 +1,10 @@
 ## What's new in Version 1.11.0 of RaspiBlitz?
 
+- Update: RaspberryOS Debian 12 (Bookworm) base image from 2023-10-10
 - Update: Bitcoin Core v25.1 [details](https://github.com/bitcoin/bitcoin/blob/master/doc/release-notes/release-notes-25.1.md)
 - Update: LND v0.17.2-beta [details](https://github.com/lightningnetwork/lnd/releases/tag/v0.17.2-beta)
 - Update: BTCPayServer v1.11.7 [details](https://github.com/btcpayserver/btcpayserver/releases/tag/v1.11.7)
+- Update: Specter Desktop v2.0.2 [details](https://github.com/cryptoadvance/specter-desktop/releases/tag/v2.0.2)
 
 ## What's new in Version 1.10.0 of RaspiBlitz?
 
@@ -427,4 +429,3 @@ Version 1.1 packs some first fixes and enhancements to make the RaspiBlitz more 
 - Removed: FTP download option for blockchain
 
 For full details see issue list of [Release 1.1 Milestone](https://github.com/rootzoll/raspiblitz/milestone/3?closed=1).
-
