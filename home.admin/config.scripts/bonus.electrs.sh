@@ -36,9 +36,12 @@ if [ "$1" = "status" ]; then
     echo "configured=0"
   fi
 
-  serviceInstalled=$(sudo systemctl status electrs --no-page 2>/dev/null | grep -c "electrs.service - Electrs")
-  echo "serviceInstalled=${serviceInstalled}"
-  if [ ${serviceInstalled} -eq 0 ]; then
+  installed=$(sudo ls /home/electrs/electrs/target/release/electrs 2>/dev/null | grep -c 'electrs')
+  echo "installed=${installed}"
+
+  switchedon=$(sudo ls /etc/systemd/system/electrs.service 2>/dev/null | grep -c 'electrs.service')
+  echo "switchedon=${switchedon}"
+  if [ ${switchedon} -eq 0 ]; then
     echo "infoSync='Service not installed'"
   fi
 
