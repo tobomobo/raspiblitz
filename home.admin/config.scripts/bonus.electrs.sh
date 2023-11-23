@@ -41,9 +41,6 @@ if [ "$1" = "status" ]; then
 
   switchedon=$(sudo ls /etc/systemd/system/electrs.service 2>/dev/null | grep -c 'electrs.service')
   echo "switchedon=${switchedon}"
-  if [ ${switchedon} -eq 0 ]; then
-    echo "infoSync='Service not installed'"
-  fi
 
   serviceRunning=$(sudo systemctl status electrs --no-page 2>/dev/null | grep -c "active (running)")
   if [ ${serviceRunning} -eq 1 ]; then
