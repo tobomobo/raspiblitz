@@ -46,7 +46,6 @@ if [ "$1" = "status" ]; then
   fi
 
   serviceRunning=$(sudo systemctl status electrs --no-page 2>/dev/null | grep -c "active (running)")
-  echo "serviceRunning=${serviceRunning}"
   if [ ${serviceRunning} -eq 1 ]; then
 
     # check local IPv4 port
