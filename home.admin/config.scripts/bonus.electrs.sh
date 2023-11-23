@@ -306,7 +306,7 @@ if [ "$1" = "install" ]; then
   else
     echo "# ElectRS is already installed."
   fi
-
+  exit 0
 fi
 
 # INSTALL
@@ -330,6 +330,7 @@ if [ "$1" = "uninstall" ]; then
   echo "# Removing the electrs directory"
   sudo rm -rf /home/electrs
   echo "# OK ElectRS is uninstalled."
+  exit 0
 fi
 
 # switch on
