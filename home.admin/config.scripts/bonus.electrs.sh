@@ -5,11 +5,12 @@ ELECTRSVERSION="v0.10.1"
 
 # command info
 if [ $# -eq 0 ] || [ "$1" = "-h" ] || [ "$1" = "-help" ]; then
- echo "config script to switch the Electrum Rust Server on or off"
+ echo "config script for the Electrum Rust Server $ELECTRSVERSION (WebUI ready)"
+ echo "bonus.electrs.sh [install|uninstall]"
+ echo "bonus.electrs.sh [on|off]"
  echo "bonus.electrs.sh status -> dont call in loops"
  echo "bonus.electrs.sh status-sync"
- echo "bonus.electrs.sh [on|off|menu|update]"
- echo "installs the version $ELECTRSVERSION"
+ echo "bonus.electrs.sh [menu|update]"
  exit 1
 fi
 
@@ -261,15 +262,13 @@ fi
 echo "# Making sure services are not running"
 sudo systemctl stop electrs 2>/dev/null
 
-# switch on
-if [ "$1" = "1" ] || [ "$1" = "on" ]; then
+
+# INSTALL
+if [ "$1" = "install" ]; then
   echo "# INSTALL ELECTRS"
 
-  isInstalled=$(sudo ls /etc/systemd/system/electrs.service 2>/dev/null | grep -c 'electrs.service')
+  isInstalled=$(sudo ls /home/electrs/electrs/target/release/electrs 2>/dev/null | grep -c 'electrs')
   if [ ${isInstalled} -eq 0 ]; then
-
-    # cleanup
-    sudo rm -f /home/electrs/.electrs/config.toml
 
     echo
     echo "# Creating the electrs user"
@@ -299,26 +298,76 @@ if [ "$1" = "1" ] || [ "$1" = "on" ]; then
     # build
     sudo -u electrs /home/electrs/.cargo/bin/cargo build --locked --release || exit 1
 
-    echo
-    echo "# The electrs database will be built in /mnt/hdd/app-storage/electrs/db. Takes ~18 hours and ~50Gb diskspace"
-    echo
-    sudo mkdir /mnt/hdd/app-storage/electrs 2>/dev/null
-    sudo chown -R electrs:electrs /mnt/hdd/app-storage/electrs
+    # clean up
+    sudo rm -R /home/electrs/.cargo
+    sudo rm -R /home/electrs/.rustup
 
-    echo
-    echo "# Getting RPC credentials from the bitcoin.conf"
-    # read PASSWORD_B
-    RPC_USER=$(sudo cat /mnt/hdd/bitcoin/bitcoin.conf | grep rpcuser | cut -c 9-)
-    PASSWORD_B=$(sudo cat /mnt/hdd/bitcoin/bitcoin.conf | grep rpcpassword | cut -c 13-)
-    echo "# Done"
+    echo "# OK ElectRS is installed (still needs to be switched on)"
 
-    echo
-    echo "# Generating electrs.toml setting file with the RPC passwords"
-    echo
-    # generate setting file: https://github.com/romanz/electrs/issues/170#issuecomment-530080134
-    # https://github.com/romanz/electrs/blob/master/doc/usage.md#configuration-files-and-environment-variables
-    sudo -u electrs mkdir /home/electrs/.electrs 2>/dev/null
-    echo "\
+  else
+    echo "# ElectRS is already installed."
+  fi
+
+fi
+
+# INSTALL
+if [ "$1" = "uninstall" ]; then
+  echo "# UNINSTALL ELECTRS"
+
+  isOn=$(sudo ls /etc/systemd/system/electrs.service 2>/dev/null | grep -c 'electrs.service')
+  if [ ${isOn} -eq 1 ]; then
+    echo "# ElectRS is still switched on. Switch off first and try again."
+    exit 1
+  fi
+
+  isInstalled=$(sudo ls /home/electrs/electrs/target/release/electrs 2>/dev/null | grep -c 'electrs')
+  if [ ${isInstalled} -eq 0 ]; then
+    echo "# ElectRS is not installed."
+    exit 0
+  fi
+
+  echo "# Removing the electrs user"
+  sudo userdel -rf electrs
+  echo "# Removing the electrs directory"
+  sudo rm -rf /home/electrs
+  echo "# OK ElectRS is uninstalled."
+fi
+
+# switch on
+if [ "$1" = "1" ] || [ "$1" = "on" ]; then
+  echo "# SWITCH ON ELECTRS"
+
+  # make sure electrs is installed
+  /home/admin/config.scripts/bonus.electrs.sh install || exit 1
+
+  # check if electrs is altready switsched on
+  isInstalled=$(sudo ls /etc/systemd/system/electrs.service 2>/dev/null | grep -c 'electrs.service')
+  if [ ${isInstalled} -gt 0 ]; then
+    echo "# electrs.service is already ON"
+    exit 0
+  fi
+
+  echo
+  echo "# The electrs database will be built in /mnt/hdd/app-storage/electrs/db. Takes ~18 hours and ~50Gb diskspace"
+  echo
+  sudo mkdir /mnt/hdd/app-storage/electrs 2>/dev/null
+  sudo chown -R electrs:electrs /mnt/hdd/app-storage/electrs
+
+  echo
+  echo "# Getting RPC credentials from the bitcoin.conf"
+  # read PASSWORD_B
+  RPC_USER=$(sudo cat /mnt/hdd/bitcoin/bitcoin.conf | grep rpcuser | cut -c 9-)
+  PASSWORD_B=$(sudo cat /mnt/hdd/bitcoin/bitcoin.conf | grep rpcpassword | cut -c 13-)
+  echo "# Done"
+
+  echo
+  echo "# Generating electrs.toml setting file with the RPC passwords"
+  sudo rm -f /home/electrs/.electrs/config.toml 2> /dev/null
+  echo
+  # generate setting file: https://github.com/romanz/electrs/issues/170#issuecomment-530080134
+  # https://github.com/romanz/electrs/blob/master/doc/usage.md#configuration-files-and-environment-variables
+  sudo -u electrs mkdir /home/electrs/.electrs 2>/dev/null
+  echo "\
 log_filters = \"WARN\"
 timestamp = true
 jsonrpc_import = true
@@ -331,33 +380,31 @@ auth = \"${RPC_USER}:${PASSWORD_B}\"
 txid_limit = 1000
 server_banner = \"Welcome to electrs $ELECTRSVERSION - the Electrum Rust Server on your RaspiBlitz\"
 " | sudo tee /home/electrs/.electrs/config.toml
-    sudo chmod 600 /home/electrs/.electrs/config.toml
-    sudo chown electrs:electrs /home/electrs/.electrs/config.toml
+  sudo chmod 600 /home/electrs/.electrs/config.toml
+  sudo chown electrs:electrs /home/electrs/.electrs/config.toml
 
-    echo
-    echo "# Checking for config.toml"
-    echo
-    if [ ! -f "/home/electrs/.electrs/config.toml" ]
-        then
-            echo "Failed to create config.toml"
-            exit 1
-        else
-            echo "OK"
-    fi
+  echo
+  echo "# Checking for config.toml"
+  echo
+  if [ ! -f "/home/electrs/.electrs/config.toml" ]; then
+    echo "Failed to create config.toml"
+    exit 1
+  else
+    echo "OK"
+  fi
 
-    echo
-    echo "# Setting up the nginx.conf"
-    echo
-    isElectrs=$(sudo cat /etc/nginx/nginx.conf 2>/dev/null | grep -c 'upstream electrs')
-    if [ ${isElectrs} -gt 0 ]; then
-            echo "electrs is already configured with Nginx. To edit manually run \`sudo nano /etc/nginx/nginx.conf\`"
+  echo
+  echo "# Setting up the nginx.conf"
+  echo
+  isElectrs=$(sudo cat /etc/nginx/nginx.conf 2>/dev/null | grep -c 'upstream electrs')
+  if [ ${isElectrs} -gt 0 ]; then
+    echo "electrs is already configured with Nginx. To edit manually run \`sudo nano /etc/nginx/nginx.conf\`"
+  elif [ ${isElectrs} -eq 0 ]; then
 
-    elif [ ${isElectrs} -eq 0 ]; then
+    isStream=$(sudo cat /etc/nginx/nginx.conf 2>/dev/null | grep -c 'stream {')
+    if [ ${isStream} -eq 0 ]; then
 
-            isStream=$(sudo cat /etc/nginx/nginx.conf 2>/dev/null | grep -c 'stream {')
-            if [ ${isStream} -eq 0 ]; then
-
-            echo "
+      echo "
 stream {
         upstream electrs {
                 server 127.0.0.1:50001;
@@ -374,9 +421,9 @@ stream {
         }
 }" | sudo tee -a /etc/nginx/nginx.conf
 
-            elif [ ${isStream} -eq 1 ]; then
-                    sudo truncate -s-2 /etc/nginx/nginx.conf
-                    echo "
+    elif [ ${isStream} -eq 1 ]; then
+      sudo truncate -s-2 /etc/nginx/nginx.conf
+      echo "
         upstream electrs {
                 server 127.0.0.1:50001;
         }
@@ -392,23 +439,23 @@ stream {
         }
 }" | sudo tee -a /etc/nginx/nginx.conf
 
-            elif [ ${isStream} -gt 1 ]; then
-                    echo " Too many \`stream\` commands in nginx.conf. Please edit manually: \`sudo nano /etc/nginx/nginx.conf\` and retry"
-                    exit 1
-            fi
+    elif [ ${isStream} -gt 1 ]; then
+      echo " Too many \`stream\` commands in nginx.conf. Please edit manually: \`sudo nano /etc/nginx/nginx.conf\` and retry"
+      exit 1
     fi
+  fi
 
-    echo
-    echo "# Open ports 50001 and 5002 on UFW "
-    echo
-    sudo ufw allow 50001 comment 'electrs TCP'
-    sudo ufw allow 50002 comment 'electrs SSL'
+  echo
+  echo "# Open ports 50001 and 5002 on UFW "
+  echo
+  sudo ufw allow 50001 comment 'electrs TCP'
+  sudo ufw allow 50002 comment 'electrs SSL'
 
-    echo
-    echo "# Installing the systemd service"
-    echo
-    # sudo nano /etc/systemd/system/electrs.service
-    echo "
+  echo
+  echo "# Installing the systemd service"
+  echo
+  # sudo nano /etc/systemd/system/electrs.service
+  echo "
 [Unit]
 Description=Electrs
 After=bitcoind.service
@@ -432,12 +479,7 @@ PrivateDevices=true
 [Install]
 WantedBy=multi-user.target
     " | sudo tee -a /etc/systemd/system/electrs.service
-    sudo systemctl enable electrs
-    # manual start:
-    # sudo -u electrs /home/electrs/.cargo/bin/cargo run --release -- --index-batch-size=10 --electrum-rpc-addr="0.0.0.0:50001"
-  else
-    echo "# ElectRS is already installed."
-  fi
+  sudo systemctl enable electrs
 
   # setting value in raspiblitz config
   /home/admin/config.scripts/blitz.conf.sh set ElectRS "on"
@@ -454,21 +496,20 @@ WantedBy=multi-user.target
     bitcoindRestart=yes
   fi
 
-  # clean up
-  sudo rm -R /home/electrs/.cargo
-  sudo rm -R /home/electrs/.rustup
-
   source <(/home/admin/_cache.sh get state)
   if [ "${state}" == "ready" ]; then
     if [ "${bitcoindRestart}" == "yes" ]; then
+      echo "# Restarting bitcoind to apply whitelist=download@127.0.0."
       sudo systemctl restart bitcoind
     fi
+    echo "# Restarting nginx"
     sudo systemctl restart nginx
+    echo "# Starting electrs"
     sudo systemctl start electrs
     # restart BTC-RPC-Explorer to reconfigure itself to use electrs for address API
     if [ "${BTCRPCexplorer}" == "on" ]; then
+      echo "# Restarting BTC-RPC-Explorer"
       sudo systemctl restart btc-rpc-explorer
-      echo "# BTC-RPC-Explorer restarted"
     fi
   fi
 
@@ -490,15 +531,17 @@ if [ "$1" = "0" ] || [ "$1" = "off" ]; then
     sudo rm -rf /mnt/hdd/app-storage/electrs/
   fi
 
-  isInstalled=$(sudo ls /etc/systemd/system/electrs.service 2>/dev/null | grep -c 'electrs.service')
-  if [ ${isInstalled} -eq 1 ]; then
+  isOn=$(sudo ls /etc/systemd/system/electrs.service 2>/dev/null | grep -c 'electrs.service')
+  if [ ${isOn} -eq 1 ]; then
+
+    echo "# Stopping & removing electrs.service"
     sudo systemctl disable electrs
     sudo rm /etc/systemd/system/electrs.service
 
-    # restart BTC-RPC-Explorer to reconfigure itself to use electrs for address API
+    # restart BTC-RPC-Explorer 
     if [ "${BTCRPCexplorer}" == "on" ]; then
+      echo "# Restarting BTC-RPC-Explorer to reconfigure itself to use electrs for address API"
       sudo systemctl restart btc-rpc-explorer
-      echo "# BTC-RPC-Explorer restarted"
     fi
 
   else
@@ -507,20 +550,19 @@ if [ "$1" = "0" ] || [ "$1" = "off" ]; then
 
   # Hidden Service if Tor is active
   if [ "${runBehindTor}" = "on" ]; then
+    echo "# Removing Tor Hidden Service"
     /home/admin/config.scripts/tor.onion-service.sh off electrs
   fi
 
   # close ports on firewall
+  echo "# closing ports on firewall"
   sudo ufw delete allow 50001
   sudo ufw delete allow 50002
-
-  # delete user and home directory
-  sudo userdel -rf electrs
 
   # setting value in raspiblitz config
   /home/admin/config.scripts/blitz.conf.sh set ElectRS "off"
 
-  echo "# OK ElectRS removed."
+  echo "# OK ElectRS is OFF. Use 'uninstall' to remove all data."
   exit 0
 fi
 
